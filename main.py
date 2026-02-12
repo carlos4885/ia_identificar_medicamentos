@@ -5,13 +5,12 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-load_dotenv() # <--- Este paso "activa" el archivo .env
+load_dotenv()
 api_key = os.getenv('API_KEY')  
 
-os.environ["GOOGLE_API_KEY"] = api_key # <--- Pon tu API key aquí
+os.environ["GOOGLE_API_KEY"] = api_key
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
-# 1. Verificar modelos de embedding y chat disponibles
 print("🔍 VERIFICANDO MODELOS DISPONIBLES:")
 print("="*50)
 
@@ -68,11 +67,10 @@ while True:
         print("¡Adiós!")
         break
 
-    # Buscar en el PDF (SOLO EN TU BASE DE DATOS LOCAL)
+
     docs = db.similarity_search(query, k=5)
     context = "\n---\n".join([doc.page_content for doc in docs])
     
-    # 🚨 PROMPT QUE LO AISLA COMPLETAMENTE
     prompt = f"""ERES UN PROGRAMA DE CONSULA LOCAL SIN ACCESO A INTERNET.
     
     ⚠️ RESTRICCIONES ABSOLUTAS:
