@@ -6,7 +6,7 @@ import './index.css' // Si tienes estilos globales
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* 2. Envolvemos toda la App con el Router */}
+    {}
     <BrowserRouter>
       <App />
     </BrowserRouter>
