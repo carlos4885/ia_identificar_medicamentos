@@ -1,74 +1,161 @@
-import React from 'react';
-import './App.css';
-import { styles } from './App.styles';
-import { 
-  Camera, RefreshCw, Settings, User, 
-  Home, Zap, Image as ImageIcon 
-} from 'lucide-react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Camera, Pill, Bell } from 'lucide-react';
+import Escaner from './components/Escaner.jsx';
+
+// Animación simple para entrada de pantalla
+const fadeIn = {
+  animation: 'fadeIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)',
+};
+
+// Agregar keyframes globales
+if (typeof document !== 'undefined' && !document.getElementById('fadeInKeyframes')) {
+  const style = document.createElement('style');
+  style.id = 'fadeInKeyframes';
+  style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }`;
+  document.head.appendChild(style);
+}
+
+// Pantalla de Pastillas
+const Pastillero = () => (
+  <div style={{
+    padding: '32px',
+    maxWidth: 480,
+    margin: '0 auto',
+    background: 'rgba(255,255,255,0.7)',
+    borderRadius: '24px',
+    boxShadow: '0 4px 24px 0 rgba(0,64,128,0.07)',
+    marginTop: 32,
+    ...fadeIn
+  }}>
+    <h2 style={{color: '#2563eb', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>💊 Mis Pastillas</h2>
+    <p style={{color: '#64748b', fontSize: 18}}>Tu lista está vacía.</p>
+  </div>
+);
+// Pantalla de Alarmas
+const Alarmas = () => (
+  <div style={{
+    padding: '32px',
+    maxWidth: 480,
+    margin: '0 auto',
+    background: 'rgba(255,255,255,0.7)',
+    borderRadius: '24px',
+    boxShadow: '0 4px 24px 0 rgba(0,64,128,0.07)',
+    marginTop: 32,
+    ...fadeIn
+  }}>
+    <h2 style={{color: '#22c55e', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>🔔 Alarmas</h2>
+    <p style={{color: '#64748b', fontSize: 18}}>No hay alarmas configuradas.</p>
+  </div>
+);
+
+function NavBar() {
+  const location = useLocation();
+  const isActive = (path) => location.pathname === path;
+  const btnStyle = {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '10px',
+    textDecoration: 'none',
+    color: '#64748b',
+    transition: 'color 0.2s',
+    fontWeight: 500,
+    fontSize: 15,
+    letterSpacing: 0.2
+  };
+  const activeStyle = {
+    ...btnStyle,
+    color: '#2563eb',
+    fontWeight: 700,
+    textShadow: '0 2px 8px #c7d2fe55'
+  };
+  return (
+    <nav style={{
+      position: 'fixed',
+      left: 0,
+      bottom: 0,
+      width: '100%',
+      height: '84px',
+      background: 'rgba(255,255,255,0.85)',
+      boxShadow: '0 0 24px 0 rgba(37,99,235,0.08)',
+      borderTop: '1.5px solid #e0e7ef',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      zIndex: 1000,
+      backdropFilter: 'blur(12px)',
+      animation: 'fadeIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)'
+    }}>
+      <Link to="/" style={isActive('/') ? activeStyle : btnStyle}>
+        <Pill size={32} style={{marginBottom: 2, transition: 'transform 0.2s'}} />
+        <span>Pastillas</span>
+      </Link>
+      <Link to="/escanear" style={{ ...btnStyle, color: 'white', margin: '0 8px' }}>
+        <div style={{
+          background: 'linear-gradient(135deg,#2563eb 60%,#22d3ee 100%)',
+          padding: '18px',
+          borderRadius: '50%',
+          marginTop: '-48px',
+          boxShadow: '0 6px 24px 0 #2563eb55',
+          border: '4px solid #fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'box-shadow 0.2s, transform 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <Camera size={40} />
+        </div>
+        <span style={{fontSize: '15px', color: '#2563eb', fontWeight: 700, marginTop: '7px', letterSpacing: 0.2}}>Escanear</span>
+      </Link>
+      <Link to="/alarmas" style={isActive('/alarmas') ? activeStyle : btnStyle}>
+        <Bell size={32} style={{marginBottom: 2, transition: 'transform 0.2s'}} />
+        <span>Alarmas</span>
+      </Link>
+    </nav>
+  );
+}
 
 function App() {
   return (
-    <div style={styles.container}>
-      {/* SECCIÓN SUPERIOR: VISTA CÁMARA */}
-      <div style={styles.cameraView}>
-        <div style={styles.topBar}>
-          <div style={styles.iconCircle}><Zap size={20} color="white" /></div>
-          <span style={styles.pills}>CÁMARA</span>
-          <div style={styles.iconCircle}><Settings size={20} color="white" /></div>
-        </div>
-
-        <div style={styles.focusFrame}>
-          <div style={styles.statusText}>Listo para foto</div>
-        </div>
-      </div>
-
-      {/* SECCIÓN INFERIOR: CONTROLES */}
-      <div style={styles.controlsPanel}>
-        <div style={styles.tabBar}>
-          <span>VIDEO</span>
-          <span style={styles.activeTab}>FOTO</span>
-          <span>GALERÍA</span>
-        </div>
-
-        <div style={styles.captureRow}>
-          <div style={styles.thumbnailPreview}>
-            {/* Imagen de ejemplo simulando la galería */}
-            <img 
-              src="https://picsum.photos/100" 
-              alt="last" 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-            />
-          </div>
-          
-          <button style={styles.captureButton} onClick={() => alert("Capturando medicamento...")}>
-            <div style={styles.captureButtonInner}>
-              <Camera size={30} color="black" fill="black" />
-            </div>
-          </button>
-
-          <div style={styles.iconCircleGray}>
-            <RefreshCw size={24} color="#333" />
-          </div>
-        </div>
-        
-        <p style={styles.hintText}>Tocar botón para foto</p>
-
-        {/* BARRA DE NAVEGACIÓN */}
-        <div style={styles.bottomNav}>
-          <div style={styles.navItemActive}>
-            <Home size={24} />
-            <span>INICIO</span>
-          </div>
-          <div style={styles.navItem}>
-            <Settings size={24} />
-            <span>AJUSTES</span>
-          </div>
-          <div style={styles.navItem}>
-            <User size={24} />
-            <span>PERFIL</span>
-          </div>
-        </div>
-      </div>
+    <div style={{
+      paddingBottom: '110px',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      minHeight: '100vh',
+      background: 'linear-gradient(120deg,#e0f2fe 0%,#f8fafc 100%)',
+      boxSizing: 'border-box',
+    }}>
+      <header style={{
+        background: 'rgba(255,255,255,0.65)',
+        color: '#2563eb',
+        padding: '28px 0 18px 0',
+        boxShadow: '0 2px 24px 0 #2563eb11',
+        textAlign: 'center',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1.5px solid #e0e7ef'
+      }}>
+        <h1 style={{
+          margin: 0,
+          fontSize: '2.1rem',
+          fontWeight: 900,
+          letterSpacing: 0.5,
+          textShadow: '0 2px 12px #2563eb22'
+        }}>
+          MedSacn <span style={{color:'#22d3ee'}}>IA</span>
+        </h1>
+      </header>
+      <Routes>
+        <Route path="/" element={<Pastillero />} />
+        <Route path="/escanear" element={<Escaner />} />
+        <Route path="/alarmas" element={<Alarmas />} />
+      </Routes>
+      <NavBar />
     </div>
   );
 }
