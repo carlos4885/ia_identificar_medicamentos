@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Camera, Pill, Bell, Settings } from 'lucide-react';
+import { Camera, Pill, Bell, Settings, Sun, Moon } from 'lucide-react';
 import Escaner from './components/Escaner.jsx';
 
 // Animación simple para entrada de pantalla
@@ -120,16 +121,44 @@ function NavBar() {
 }
 
 function App() {
+  const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light';
+  });
+
+  // Cambia el tema y guarda en localStorage
+  const toggleTheme = (t) => {
+    setTheme(t);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', t);
+    }
+  };
+
+  // Aplica el tema al body
+  if (typeof document !== 'undefined') {
+    document.body.style.background = theme === 'dark'
+      ? 'linear-gradient(120deg,#181f2a 0%,#23272f 100%)'
+      : 'linear-gradient(120deg,#e0f2fe 0%,#f8fafc 100%)';
+    document.body.style.color = theme === 'dark' ? '#e0e6ef' : '#213547';
+  }
+
   return (
     <div style={{
       paddingBottom: '110px',
       fontFamily: 'Inter, system-ui, sans-serif',
       minHeight: '100vh',
-      background: 'linear-gradient(120deg,#e0f2fe 0%,#f8fafc 100%)',
+      background: theme === 'dark'
+        ? 'linear-gradient(120deg,#181f2a 0%,#23272f 100%)'
+        : 'linear-gradient(120deg,#e0f2fe 0%,#f8fafc 100%)',
+      color: theme === 'dark' ? '#e0e6ef' : '#213547',
       boxSizing: 'border-box',
+      transition: 'background 0.4s, color 0.4s',
     }}>
       <header style={{
-        background: 'rgba(255,255,255,0.65)',
+        background: theme === 'dark' ? 'rgba(24,31,42,0.85)' : 'rgba(255,255,255,0.65)',
         color: '#2563eb',
         padding: '28px 0 18px 0',
         boxShadow: '0 2px 24px 0 #2563eb11',
@@ -173,6 +202,7 @@ function App() {
               outline: 'none',
               boxShadow: 'none',
             }}
+            onClick={() => setShowSettings(true)}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(34,211,238,0.12)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
@@ -180,6 +210,103 @@ function App() {
           </button>
         </div>
       </header>
+
+      {/* Modal de ajustes */}
+      {showSettings && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.25)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+          onClick={() => setShowSettings(false)}
+        >
+          <div
+            style={{
+              background: theme === 'dark' ? 'rgba(24,31,42,0.98)' : 'rgba(255,255,255,0.98)',
+              borderRadius: 20,
+              boxShadow: '0 8px 32px 0 #2563eb33',
+              padding: 32,
+              minWidth: 320,
+              maxWidth: '90vw',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'fadeIn 0.4s',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{margin: 0, marginBottom: 18, fontWeight: 900, fontSize: 24, color: theme === 'dark' ? '#e0e6ef' : '#2563eb'}}>Ajustes</h2>
+            <div style={{display: 'flex', gap: 18, marginBottom: 12}}>
+              <button
+                onClick={() => toggleTheme('light')}
+                style={{
+                  background: theme === 'light' ? 'linear-gradient(90deg,#2563eb 60%,#22d3ee 100%)' : 'rgba(220,220,220,0.2)',
+                  color: theme === 'light' ? '#fff' : '#2563eb',
+                  border: theme === 'light' ? 'none' : '1.5px solid #2563eb33',
+                  fontWeight: 800,
+                  fontSize: 18,
+                  borderRadius: 12,
+                  padding: '12px 24px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: theme === 'light' ? '0 2px 12px 0 #2563eb22' : 'none',
+                  transition: 'background 0.2s, color 0.2s',
+                }}
+                disabled={theme === 'light'}
+              >
+                <Sun size={22} /> Claro
+              </button>
+              <button
+                onClick={() => toggleTheme('dark')}
+                style={{
+                  background: theme === 'dark' ? 'linear-gradient(90deg,#181f2a 60%,#23272f 100%)' : 'rgba(220,220,220,0.2)',
+                  color: theme === 'dark' ? '#fff' : '#23272f',
+                  border: theme === 'dark' ? 'none' : '1.5px solid #23272f33',
+                  fontWeight: 800,
+                  fontSize: 18,
+                  borderRadius: 12,
+                  padding: '12px 24px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: theme === 'dark' ? '0 2px 12px 0 #181f2a22' : 'none',
+                  transition: 'background 0.2s, color 0.2s',
+                }}
+                disabled={theme === 'dark'}
+              >
+                <Moon size={22} /> Oscuro
+              </button>
+            </div>
+            <button
+              onClick={() => setShowSettings(false)}
+              style={{
+                marginTop: 18,
+                background: 'none',
+                color: theme === 'dark' ? '#e0e6ef' : '#2563eb',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: 16,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                borderRadius: 8,
+                padding: 8,
+              }}
+            >Cerrar</button>
+          </div>
+        </div>
+      )}
+
       <Routes>
         <Route path="/" element={<Pastillero />} />
         <Route path="/escanear" element={<Escaner />} />
