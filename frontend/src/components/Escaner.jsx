@@ -80,22 +80,24 @@ const Escaner = () => {
   };
 
   return (
-    <div className="p-4 flex flex-col items-center" style={{ minHeight: '80vh' }}>
-      <h2 className="text-2xl font-bold mb-6 text-blue-800">Identificar Medicina</h2>
+    <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 8px 0 8px', background: 'none' }}>
+      <h2 style={{ fontSize: 30, fontWeight: 900, color: '#2563eb', marginBottom: 28, letterSpacing: 0.5, textShadow: '0 2px 12px #2563eb22' }}>Identificar Medicina</h2>
 
       {/* ESTADO 1: No hay foto */}
       {!imagen && (
         <button 
           onClick={tomarFoto}
           style={{
-            width: '280px', height: '280px', borderRadius: '20px',
-            background: '#e0f2fe', border: '4px dashed #0284c7',
+            width: 260, height: 260, borderRadius: 32,
+            background: 'rgba(34,211,238,0.10)', border: '3.5px dashed #22d3ee',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer'
+            cursor: 'pointer', boxShadow: '0 4px 24px 0 #22d3ee11',
+            transition: 'box-shadow 0.2s',
+            marginBottom: 18
           }}
         >
-          <CameraIcon size={80} color="#0284c7" />
-          <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#0284c7', marginTop: '10px' }}>
+          <CameraIcon size={80} color="#22d3ee" />
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#22d3ee', marginTop: 12, letterSpacing: 0.5 }}>
             TOCAR PARA<br/>ESCANEAR
           </span>
         </button>
@@ -103,21 +105,21 @@ const Escaner = () => {
 
       {/* ESTADO 2: Foto tomada, confirmar envío */}
       {imagen && !resultado && !cargando && (
-        <div className="flex flex-col items-center w-full">
-          <img src={imagen} alt="Captura" style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', borderRadius: '12px', border: '2px solid #333' }} />
-          
-          <div className="flex gap-4 mt-6 w-full justify-center">
-            <button onClick={reiniciar} style={{ padding: '15px', background: '#ef4444', borderRadius: '12px', color: 'white' }}>
-              <X size={32} />
+        <div className="glass" style={{ width: '100%', maxWidth: 420, margin: '0 auto', borderRadius: 24, boxShadow: '0 4px 24px 0 #2563eb11', padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src={imagen} alt="Captura" style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 16, border: '2px solid #22d3ee', marginBottom: 18 }} />
+          <div style={{ display: 'flex', gap: 18, width: '100%', justifyContent: 'center', marginTop: 8 }}>
+            <button onClick={reiniciar} style={{ padding: 15, background: '#ef4444', borderRadius: 12, color: 'white', fontWeight: 700, fontSize: 18, minWidth: 56, boxShadow: '0 2px 8px #ef444422' }}>
+              <X size={28} />
             </button>
             <button 
               onClick={analizarMedicamento}
               style={{ 
-                flex: 1, padding: '15px', background: '#22c55e', borderRadius: '12px', color: 'white',
-                fontSize: '20px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'
+                flex: 1, padding: 15, background: 'linear-gradient(90deg,#22c55e 60%,#22d3ee 100%)', borderRadius: 12, color: 'white',
+                fontSize: 20, fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10,
+                boxShadow: '0 2px 12px #22c55e22', border: 'none', minWidth: 120
               }}
             >
-              <Check size={32} /> ANALIZAR
+              <Check size={28} /> ANALIZAR
             </button>
           </div>
         </div>
@@ -125,29 +127,28 @@ const Escaner = () => {
 
       {/* ESTADO 3: Cargando */}
       {cargando && (
-        <div className="mt-10 flex flex-col items-center">
-          <Loader2 size={64} className="animate-spin text-blue-600" />
-          <p className="mt-4 text-xl font-bold text-gray-600">Consultando IA...</p>
+        <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Loader2 size={64} className="animate-spin" color="#2563eb" />
+          <p style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: '#64748b' }}>Consultando IA...</p>
         </div>
       )}
 
       {/* ESTADO 4: Resultado o Error */}
       {resultado && (
-        <div style={{ background: '#dcfce7', padding: '20px', borderRadius: '16px', border: '2px solid #22c55e', width: '100%' }}>
-          <h3 style={{ fontSize: '28px', color: '#14532d', margin: 0 }}>{resultado.nombre}</h3>
-          <p style={{ fontSize: '18px', color: '#166534', marginTop: '10px' }}>{resultado.info}</p>
-          
-          <button onClick={reiniciar} style={{ marginTop: '20px', width: '100%', padding: '15px', background: 'white', border: '2px solid #22c55e', color: '#22c55e', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold' }}>
-            <RefreshCw style={{ display: 'inline', marginRight: '8px' }} />
+        <div className="glass" style={{ background: 'rgba(34,197,94,0.10)', padding: 28, borderRadius: 24, border: '2px solid #22c55e', width: '100%', maxWidth: 420, margin: '0 auto', marginTop: 8, boxShadow: '0 4px 24px 0 #22c55e11' }}>
+          <h3 style={{ fontSize: 28, color: '#14532d', margin: 0, fontWeight: 900 }}>{resultado.nombre}</h3>
+          <p style={{ fontSize: 18, color: '#166534', marginTop: 10, fontWeight: 600 }}>{resultado.info}</p>
+          <button onClick={reiniciar} style={{ marginTop: 24, width: '100%', padding: 15, background: 'white', border: '2px solid #22c55e', color: '#22c55e', borderRadius: 12, fontSize: 18, fontWeight: 800, boxShadow: '0 2px 8px #22c55e22' }}>
+            <RefreshCw style={{ display: 'inline', marginRight: 8 }} />
             ESCANEAR OTRA
           </button>
         </div>
       )}
 
       {error && (
-        <div style={{ background: '#fee2e2', padding: '15px', borderRadius: '12px', color: '#b91c1c', width: '100%', marginTop: '20px', fontSize: '18px' }}>
+        <div style={{ background: 'rgba(239,68,68,0.10)', padding: 18, borderRadius: 16, color: '#b91c1c', width: '100%', maxWidth: 420, margin: '24px auto 0 auto', fontSize: 18, fontWeight: 700, border: '2px solid #ef4444', boxShadow: '0 2px 8px #ef444422' }}>
           ⚠️ {error}
-          <button onClick={reiniciar} className="block mt-2 underline font-bold">Intentar de nuevo</button>
+          <button onClick={reiniciar} style={{ display: 'block', marginTop: 12, textDecoration: 'underline', fontWeight: 800, color: '#b91c1c', background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' }}>Intentar de nuevo</button>
         </div>
       )}
     </div>

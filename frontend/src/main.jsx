@@ -1,11 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx' // Asegúrate de que importas App de ./App.jsx
-// import './index.css' // Descomenta esto si tienes un archivo css global
+import { BrowserRouter } from 'react-router-dom' // 1. Importamos el Router
+import App from './App.jsx'
+import './index.css' // Si tienes estilos globales
 
-// Esta es la forma moderna de iniciar React (versión 18)
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    {/* 2. Envolvemos toda la App con el Router */}
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>,
 )
