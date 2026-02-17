@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Camera, Pill, Bell } from 'lucide-react';
+import { Camera, Pill, Bell, Settings } from 'lucide-react';
 import Escaner from './components/Escaner.jsx';
 
 // Animación simple para entrada de pantalla
@@ -138,17 +138,47 @@ function App() {
         top: 0,
         zIndex: 100,
         backdropFilter: 'blur(10px)',
-        borderBottom: '1.5px solid #e0e7ef'
+        borderBottom: '1.5px solid #e0e7ef',
+        minHeight: 70,
       }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: '2.1rem',
-          fontWeight: 900,
-          letterSpacing: 0.5,
-          textShadow: '0 2px 12px #2563eb22'
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          MedSacn <span style={{color:'#22d3ee'}}>IA</span>
-        </h1>
+          <h1 style={{
+            margin: 0,
+            fontSize: '2.1rem',
+            fontWeight: 900,
+            letterSpacing: 0.5,
+            textShadow: '0 2px 12px #2563eb22',
+            flex: 1,
+          }}>
+            MedSacn <span style={{color:'#22d3ee'}}>IA</span>
+          </h1>
+          <button
+            aria-label="Ajustes"
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              padding: 8,
+              cursor: 'pointer',
+              borderRadius: 8,
+              transition: 'background 0.2s',
+              outline: 'none',
+              boxShadow: 'none',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(34,211,238,0.12)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            <Settings size={32} color="#2563eb" />
+          </button>
+        </div>
       </header>
       <Routes>
         <Route path="/" element={<Pastillero />} />
