@@ -1,6 +1,19 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Camera, Pill, Bell } from 'lucide-react';
-import Escaner from './components/Escaner.jsx'; 
+import Escaner from './components/Escaner.jsx';
+
+// Animación simple para entrada de pantalla
+const fadeIn = {
+  animation: 'fadeIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)',
+};
+
+// Agregar keyframes globales
+if (typeof document !== 'undefined' && !document.getElementById('fadeInKeyframes')) {
+  const style = document.createElement('style');
+  style.id = 'fadeInKeyframes';
+  style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }`;
+  document.head.appendChild(style);
+}
 
 // Pantalla de Pastillas
 const Pastillero = () => (
@@ -11,7 +24,8 @@ const Pastillero = () => (
     background: 'rgba(255,255,255,0.7)',
     borderRadius: '24px',
     boxShadow: '0 4px 24px 0 rgba(0,64,128,0.07)',
-    marginTop: 32
+    marginTop: 32,
+    ...fadeIn
   }}>
     <h2 style={{color: '#2563eb', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>💊 Mis Pastillas</h2>
     <p style={{color: '#64748b', fontSize: 18}}>Tu lista está vacía.</p>
@@ -26,7 +40,8 @@ const Alarmas = () => (
     background: 'rgba(255,255,255,0.7)',
     borderRadius: '24px',
     boxShadow: '0 4px 24px 0 rgba(0,64,128,0.07)',
-    marginTop: 32
+    marginTop: 32,
+    ...fadeIn
   }}>
     <h2 style={{color: '#22c55e', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>🔔 Alarmas</h2>
     <p style={{color: '#64748b', fontSize: 18}}>No hay alarmas configuradas.</p>
@@ -69,10 +84,11 @@ function NavBar() {
       justifyContent: 'space-around',
       alignItems: 'center',
       zIndex: 1000,
-      backdropFilter: 'blur(12px)'
+      backdropFilter: 'blur(12px)',
+      animation: 'fadeIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)'
     }}>
       <Link to="/" style={isActive('/') ? activeStyle : btnStyle}>
-        <Pill size={32} style={{marginBottom: 2}} />
+        <Pill size={32} style={{marginBottom: 2, transition: 'transform 0.2s'}} />
         <span>Pastillas</span>
       </Link>
       <Link to="/escanear" style={{ ...btnStyle, color: 'white', margin: '0 8px' }}>
@@ -86,14 +102,17 @@ function NavBar() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'box-shadow 0.2s'
-        }}>
+          transition: 'box-shadow 0.2s, transform 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
           <Camera size={40} />
         </div>
         <span style={{fontSize: '15px', color: '#2563eb', fontWeight: 700, marginTop: '7px', letterSpacing: 0.2}}>Escanear</span>
       </Link>
       <Link to="/alarmas" style={isActive('/alarmas') ? activeStyle : btnStyle}>
-        <Bell size={32} style={{marginBottom: 2}} />
+        <Bell size={32} style={{marginBottom: 2, transition: 'transform 0.2s'}} />
         <span>Alarmas</span>
       </Link>
     </nav>
@@ -128,7 +147,7 @@ function App() {
           letterSpacing: 0.5,
           textShadow: '0 2px 12px #2563eb22'
         }}>
-          Mi Pastillero <span style={{color:'#22d3ee'}}>IA</span>
+          MedSacn <span style={{color:'#22d3ee'}}>IA</span>
         </h1>
       </header>
       <Routes>
