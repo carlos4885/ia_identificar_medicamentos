@@ -1,6 +1,6 @@
 // Importa hooks y componentes de React y librerías externas
 import { useState } from 'react';
-import styles from './Alarmas.module.css'; // Estilos CSS para la sección de alarmas
+import styles from './Alarmas.seccion.css'; // Estilos CSS para la sección de alarmas
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'; // Para navegación y rutas
 import { Camera, Pill, Bell, Settings, Sun, Moon } from 'lucide-react'; // Iconos
 import Escaner from './components/Escaner.jsx'; // Componente de escaneo
