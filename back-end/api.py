@@ -1,18 +1,19 @@
 import re
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 import requests
 import os
 
 load_dotenv()
 CHATPDF_API_KEY = os.getenv('CHATPDF_API_KEY')
 
+
 app = Flask(__name__)
+app.secret_key = 'tu_clave_secreta_aqui'  # Necesario para usar sesiones
 
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-
 
 def ocr_space_ocr(ruta_imagen, idioma="spa"):
     """API gratuita de OCR.space - 500 peticiones/mes gratis"""
@@ -47,7 +48,6 @@ def request_cima(codigo_nacional):
         datos = respuesta.json()
         nombre_medicamento = datos.get('nombre') 
         nombre_medicamento = nombre_medicamento.split()[0] # Solo cojo la primera palabra, porque si no, el nombre del medicamento es muy largo y no se puede guardar con ese nombre
-        print(f"Nombre: {nombre_medicamento}")
         for doc in datos['docs']:
             if doc['tipo'] == 1:
                 try:
@@ -67,67 +67,50 @@ def request_cima(codigo_nacional):
                         archivo.write(respuesta2.content)
                 except Exception as e:
                     print(f"Ocurrió un error a la hora de guardar la url del PDF: {e}")
-        SOURCE_IDS = subir_a_chatpdf([f"Ficha_{nombre_medicamento}.pdf", f"Prospecto_{nombre_medicamento}.pdf"])
         return {
             "nombre": nombre_medicamento,
             "ficha_tecnica": url_ficha_tecnica,
-            "prospecto": url_prospecto,
-            "source_ids": SOURCE_IDS
+            "prospecto": url_prospecto
         }
     else:
         print(f"Error: No se encontró el medicamento (Status: {respuesta.status_code})")
 
-def subir_a_chatpdf(rutas_archivos):
-    """Sube múltiples archivos y devuelve una lista de sourceIds"""
-    if isinstance(rutas_archivos, str):
-        rutas_archivos = [rutas_archivos]
-    
+def subir_a_chatpdf(ruta_pdf):
     url = "https://api.chatpdf.com/v1/sources/add-file"
     headers = {"x-api-key": CHATPDF_API_KEY}
     
-    source_ids = []
+    nombre_archivo = os.path.basename(ruta_pdf)
     
-    for ruta in rutas_archivos:
-        nombre_archivo = os.path.basename(ruta)
-        print(f"Subiendo: {nombre_archivo}")
-        
-        with open(ruta, "rb") as f:
-            files = [("file", (nombre_archivo, f, "application/pdf"))]
-            response = requests.post(url, headers=headers, files=files)
-        
-        if response.status_code == 200:
-            source_id = response.json().get("sourceId")
-            source_ids.append(source_id)
-            print(f"✓ {nombre_archivo} subido exitosamente")
-        else:
-            print(f"✗ Error al subir {nombre_archivo}: {response.text}")
+    with open(ruta_pdf, "rb") as f:
+        files = [("file", (nombre_archivo, f, "application/pdf"))]
+        response = requests.post(url, headers=headers, files=files)
     
-    return source_ids
+    if response.status_code == 200:
+        source_id = response.json().get("sourceId")
+        print(f"✅ Archivo subido: {nombre_archivo}")
+        return source_id
+    else:
+        print(f"❌ Error: {response.text}")
+        return None
 
-def preguntar_a_pdfs(source_ids, pregunta):
-    """Envía una pregunta sobre múltiples PDFs"""
-    if not source_ids:
-        return "No hay PDFs cargados para consultar"
-    
+def preguntar_a_pdf(source_id, pregunta):
+    """Envía una pregunta sobre un PDF específico"""
     url = "https://api.chatpdf.com/v1/chats/message"
     headers = {
-        "x-api-key": CHATPDF_API_KEY,
+        "x-api-key": CHATPDF_API_KEY,  # Agregado: header faltante
         "Content-Type": "application/json"
     }
-    
-    # Usar el primer sourceId y hacer referencia a todos en la pregunta
     data = {
-        "sourceId": source_ids[0],
+        "sourceId": source_id,
         "messages": [
             {
                 "role": "user",
-                "content": f"Tengo {len(source_ids)} documentos PDF. Usando TODOS los documentos cargados, responde: {pregunta}"
+                "content": f"Responde únicamente usando el PDF: {pregunta}"
             }
         ]
     }
     
-    response = requests.post(url, headers=headers, json=data)
-    
+    response = requests.post(url, headers=headers, json=data)  # Modificado: usar json=data en lugar de data
     if response.status_code == 200:
         return response.json().get("content")
     else:
@@ -149,23 +132,28 @@ def upload_image():
     texto_extraido = ocr_space_ocr(ruta_destino)
 
     codigo_nacional = sacar_codigo_nacional(texto_extraido)
-
-    request_cima(codigo_nacional)
     
+    nombre = request_cima(codigo_nacional)
+    ruta = f'uploads/Ficha_{nombre["nombre"]}.pdf'
+    print(f"Rutas obtenidas: {ruta}")
+    source_id = subir_a_chatpdf(ruta)
+    session['source_id'] = source_id  # Guardar el sourceId en la sesión para usarlo en la pregunta
     return jsonify({
         "mensaje": "Todo Fino"
     }), 200
 
-
 @app.route('/pregunta', methods=['GET'])
 def hacer_pregunta():
+    source_id = session.get('source_id')
     pregunta = request.args.get('pregunta')
-    respuesta = preguntar_a_pdfs(SOURCE_IDS, pregunta)
+    respuesta = preguntar_a_pdf(source_id, pregunta)
+    if not pregunta:
+        return jsonify({"error": "No se proporcionó una pregunta"}), 400
+    
     return jsonify({
         "pregunta": pregunta,
         "respuesta": respuesta
     }), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True)
