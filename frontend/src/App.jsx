@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import styles from './Alarmas.module.css';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Camera, Pill, Bell, Settings, Sun, Moon } from 'lucide-react';
 import Escaner from './components/Escaner.jsx';
@@ -33,7 +34,6 @@ const Pastillero = () => (
   </div>
 );
 // Pantalla de Alarmas
-// Pantalla de Alarmas
 const Alarmas = () => {
   const [alarmas, setAlarmas] = useState([
     // Ejemplo de alarma
@@ -60,106 +60,68 @@ const Alarmas = () => {
   };
 
   return (
-    <div style={{
-      padding: '32px',
-      maxWidth: 480,
-      margin: '0 auto',
-      background: 'rgba(255,255,255,0.85)',
-      borderRadius: '24px',
-      boxShadow: '0 8px 32px 0 rgba(34,197,94,0.08)',
-      marginTop: 32,
-      ...fadeIn
-    }}>
-      <h2 style={{color: '#22c55e', fontWeight: 900, fontSize: 30, marginBottom: 18, letterSpacing: 0.5, textAlign:'center'}}>🔔 Alarmas</h2>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'center', marginBottom: 24}}>
+    <div className={styles.alarmasContainer} style={fadeIn}>
+      <h2 className={styles.tituloAlarmas}>🔔 Alarmas</h2>
+      <div className={styles.addAlarmaRow}>
         <button
-          style={{
-            background: 'linear-gradient(135deg,#22c55e 60%,#2563eb 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: 48,
-            height: 48,
-            fontSize: 32,
-            fontWeight: 900,
-            cursor: 'pointer',
-            marginRight: 16,
-            boxShadow: '0 2px 12px #22c55e33',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background 0.2s',
-            outline: 'none',
-          }}
+          className={styles.addAlarmaBtn}
           onClick={() => setShowAdd(!showAdd)}
           title="Añadir alarma"
         >+</button>
-        <span style={{fontWeight:700, color:'#22c55e', fontSize:20}}>Añadir alarma</span>
+        <span className={styles.addAlarmaLabel}>Añadir alarma</span>
       </div>
       {showAdd && (
-        <div style={{marginBottom:24, background:'#f0fdf4', padding:20, borderRadius:16, boxShadow:'0 2px 8px #22c55e22', display:'flex', flexDirection:'column', gap:12}}>
-          <div style={{display:'flex', gap:12}}>
+        <div className={styles.addAlarmaForm}>
+          <div className={styles.addAlarmaInputs}>
             <input
               type="time"
               value={nuevaAlarma.hora}
               onChange={e => setNuevaAlarma({...nuevaAlarma, hora: e.target.value})}
-              style={{flex:1, padding:8, borderRadius:8, border:'1.5px solid #22c55e', fontSize:16}}
+              className={styles.inputTime}
             />
             <input
               type="text"
               placeholder="Descripción"
               value={nuevaAlarma.descripcion}
               onChange={e => setNuevaAlarma({...nuevaAlarma, descripcion: e.target.value})}
-              style={{flex:2, padding:8, borderRadius:8, border:'1.5px solid #22c55e', fontSize:16}}
+              className={styles.inputDesc}
             />
           </div>
           <button
             onClick={handleAddAlarma}
-            style={{background:'#22c55e', color:'#fff', border:'none', borderRadius:8, padding:'10px 0', fontWeight:700, fontSize:18, cursor:'pointer', marginTop:8, boxShadow:'0 2px 8px #22c55e33'}}
+            className={styles.guardarBtn}
           >Guardar</button>
         </div>
       )}
       {alarmas.length === 0 ? (
-        <p style={{color: '#64748b', fontSize: 18, textAlign:'center'}}>No hay alarmas configuradas.</p>
+        <p className={styles.noAlarmas}>No hay alarmas configuradas.</p>
       ) : (
-        <ul style={{listStyle:'none', padding:0, margin:0}}>
+        <ul className={styles.alarmasList}>
           {alarmas.map(alarma => (
-            <li key={alarma.id} style={{
-              display:'flex',
-              alignItems:'center',
-              justifyContent:'space-between',
-              background:'#fff',
-              borderRadius:16,
-              marginBottom:16,
-              padding:'16px 20px',
-              boxShadow:'0 2px 12px #22c55e11',
-              position:'relative',
-              border:'1.5px solid #e0e7ef',
-              transition:'box-shadow 0.2s',
-            }}>
-              <div style={{display:'flex', flexDirection:'column', gap:4}}>
-                <div style={{fontWeight:700, fontSize:20, color:'#22c55e'}}>{alarma.hora}</div>
-                <div style={{fontSize:16, color:'#2563eb', fontWeight:600}}>{alarma.descripcion}</div>
-                <div style={{fontSize:14, color:alarma.activo ? '#22c55e' : '#64748b', fontWeight:500}}>{alarma.activo ? 'Activa' : 'Inactiva'}</div>
+            <li key={alarma.id} className={styles.alarmaCard}>
+              <div className={styles.alarmaInfo}>
+                <div className={styles.alarmaHora}>{alarma.hora}</div>
+                <div className={styles.alarmaDesc}>{alarma.descripcion}</div>
+                <div className={alarma.activo ? styles.alarmaEstado : `${styles.alarmaEstado} ${styles.inactiva}`}>{alarma.activo ? 'Activa' : 'Inactiva'}</div>
               </div>
               <div style={{position:'relative'}}>
                 <button
-                  style={{background:'none', border:'none', fontSize:24, color:'#2563eb', cursor:'pointer', padding:6, borderRadius:10, outline:'none', transition:'background 0.2s'}}
+                  className={styles.menuBtn}
                   onClick={() => setShowMenuId(alarma.id === showMenuId ? null : alarma.id)}
                   title="Opciones"
                   onMouseEnter={e => e.currentTarget.style.background = '#e0e7ef'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >⋮</button>
                 {showMenuId === alarma.id && (
-                  <div style={{position:'absolute', right:0, top:32, background:'#fff', border:'1.5px solid #e0e7ef', borderRadius:12, boxShadow:'0 2px 12px #2563eb22', zIndex:10, minWidth:120}}>
+                  <div className={styles.menuOpciones}>
                     <button
-                      style={{display:'block', width:'100%', background:'none', border:'none', color:'#2563eb', padding:'12px 18px', cursor:'pointer', textAlign:'left', fontWeight:700, fontSize:16, borderRadius:12, transition:'background 0.2s'}}
+                      className={styles.menuOpcion}
                       onClick={() => handleEditAlarma(alarma.id)}
                       onMouseEnter={e => e.currentTarget.style.background = '#e0f2fe'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >Editar</button>
                     <button
-                      style={{display:'block', width:'100%', background:'none', border:'none', color:'#dc2626', padding:'12px 18px', cursor:'pointer', textAlign:'left', fontWeight:700, fontSize:16, borderRadius:12, transition:'background 0.2s'}}
+                      className={`${styles.menuOpcion} ${styles.eliminar}`}
                       onClick={() => handleDeleteAlarma(alarma.id)}
                       onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
