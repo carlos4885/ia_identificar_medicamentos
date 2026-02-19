@@ -33,20 +33,135 @@ const Pastillero = () => (
   </div>
 );
 // Pantalla de Alarmas
-const Alarmas = () => (
-  <div style={{
-    padding: '32px',
-    maxWidth: 480,
-    margin: '0 auto',
-    background: 'rgba(255,255,255,0.7)',
-    borderRadius: '24px',
-    boxShadow: '0 4px 24px 0 rgba(0,64,128,0.07)',
-    marginTop: 32,
-    ...fadeIn
-  }}>
-    <h2 style={{color: '#22c55e', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>🔔 Alarmas</h2>
-    <p style={{color: '#64748b', fontSize: 18}}>No hay alarmas configuradas.</p>
-  </div>
+// ...existing code...
+const Alarmas = () => {
+  const [alarmas, setAlarmas] = useState([
+    // Ejemplo de alarma
+    { id: 1, hora: '08:00', descripcion: 'Tomar pastilla A', activo: true },
+    { id: 2, hora: '14:00', descripcion: 'Tomar pastilla B', activo: false }
+  ]);
+  const [showMenuId, setShowMenuId] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [nuevaAlarma, setNuevaAlarma] = useState({ hora: '', descripcion: '', activo: true });
+
+  const handleAddAlarma = () => {
+    if (!nuevaAlarma.hora || !nuevaAlarma.descripcion) return;
+    setAlarmas([...alarmas, { ...nuevaAlarma, id: Date.now() }]);
+    setNuevaAlarma({ hora: '', descripcion: '', activo: true });
+    setShowAdd(false);
+  };
+  const handleEditAlarma = (id) => {
+    // Lógica de edición (puede abrir modal o similar)
+    alert('Editar alarma ' + id);
+  };
+  const handleDeleteAlarma = (id) => {
+    setAlarmas(alarmas.filter(a => a.id !== id));
+    setShowMenuId(null);
+  };
+
+  return (
+    <div style={{
+      padding: '32px',
+      maxWidth: 480,
+      margin: '0 auto',
+      background: 'rgba(255,255,255,0.7)',
+      borderRadius: '24px',
+      boxShadow: '0 4px 24px 0 rgba(0,64,128,0.07)',
+      marginTop: 32,
+      ...fadeIn
+    }}>
+      <h2 style={{color: '#22c55e', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>🔔 Alarmas</h2>
+      <div style={{display:'flex', alignItems:'center', marginBottom: 18}}>
+        <button
+          style={{
+            background: 'linear-gradient(135deg,#22c55e 60%,#2563eb 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '50%',
+            width: 44,
+            height: 44,
+            fontSize: 28,
+            fontWeight: 900,
+            cursor: 'pointer',
+            marginRight: 12,
+            boxShadow: '0 2px 8px #22c55e33',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s'
+          }}
+          onClick={() => setShowAdd(!showAdd)}
+          title="Añadir alarma"
+        >+</button>
+        <span style={{fontWeight:700, color:'#22c55e', fontSize:18}}>Añadir alarma</span>
+      </div>
+      {showAdd && (
+        <div style={{marginBottom:18, background:'#e0f2fe', padding:16, borderRadius:12}}>
+          <input
+            type="time"
+            value={nuevaAlarma.hora}
+            onChange={e => setNuevaAlarma({...nuevaAlarma, hora: e.target.value})}
+            style={{marginRight:8, padding:6, borderRadius:6, border:'1px solid #22c55e'}}
+          />
+          <input
+            type="text"
+            placeholder="Descripción"
+            value={nuevaAlarma.descripcion}
+            onChange={e => setNuevaAlarma({...nuevaAlarma, descripcion: e.target.value})}
+            style={{marginRight:8, padding:6, borderRadius:6, border:'1px solid #22c55e'}}
+          />
+          <button
+            onClick={handleAddAlarma}
+            style={{background:'#22c55e', color:'#fff', border:'none', borderRadius:6, padding:'6px 12px', fontWeight:700, cursor:'pointer'}}
+          >Guardar</button>
+        </div>
+      )}
+      {alarmas.length === 0 ? (
+        <p style={{color: '#64748b', fontSize: 18}}>No hay alarmas configuradas.</p>
+      ) : (
+        <ul style={{listStyle:'none', padding:0}}>
+          {alarmas.map(alarma => (
+            <li key={alarma.id} style={{
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'space-between',
+              background:'#f0fdf4',
+              borderRadius:12,
+              marginBottom:12,
+              padding:'12px 16px',
+              boxShadow:'0 2px 8px #22c55e11',
+              position:'relative'
+            }}>
+              <div>
+                <div style={{fontWeight:700, fontSize:18, color:'#22c55e'}}>{alarma.hora} <span style={{fontSize:15, color:'#64748b'}}>{alarma.descripcion}</span></div>
+                <div style={{fontSize:14, color:alarma.activo ? '#22c55e' : '#64748b'}}>{alarma.activo ? 'Activa' : 'Inactiva'}</div>
+              </div>
+              <div style={{position:'relative'}}>
+                <button
+                  style={{background:'none', border:'none', fontSize:22, color:'#2563eb', cursor:'pointer', padding:4, borderRadius:8}}
+                  onClick={() => setShowMenuId(alarma.id === showMenuId ? null : alarma.id)}
+                  title="Opciones"
+                >⋮</button>
+                {showMenuId === alarma.id && (
+                  <div style={{position:'absolute', right:0, top:28, background:'#fff', border:'1px solid #e0e7ef', borderRadius:8, boxShadow:'0 2px 8px #2563eb22', zIndex:10}}>
+                    <button
+                      style={{display:'block', width:'100%', background:'none', border:'none', color:'#2563eb', padding:'8px 16px', cursor:'pointer', textAlign:'left', fontWeight:700}}
+                      onClick={() => handleEditAlarma(alarma.id)}
+                    >Editar</button>
+                    <button
+                      style={{display:'block', width:'100%', background:'none', border:'none', color:'#dc2626', padding:'8px 16px', cursor:'pointer', textAlign:'left', fontWeight:700}}
+                      onClick={() => handleDeleteAlarma(alarma.id)}
+                    >Eliminar</button>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 );
 
 function NavBar() {
