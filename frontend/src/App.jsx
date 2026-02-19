@@ -33,7 +33,7 @@ const Pastillero = () => (
   </div>
 );
 // Pantalla de Alarmas
-// ...existing code...
+// Pantalla de Alarmas
 const Alarmas = () => {
   const [alarmas, setAlarmas] = useState([
     // Ejemplo de alarma
