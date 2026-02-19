@@ -1,15 +1,16 @@
+// Importa hooks y componentes de React y librerías externas
 import { useState } from 'react';
-import styles from './Alarmas.module.css';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Camera, Pill, Bell, Settings, Sun, Moon } from 'lucide-react';
-import Escaner from './components/Escaner.jsx';
+import styles from './Alarmas.module.css'; // Estilos CSS para la sección de alarmas
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'; // Para navegación y rutas
+import { Camera, Pill, Bell, Settings, Sun, Moon } from 'lucide-react'; // Iconos
+import Escaner from './components/Escaner.jsx'; // Componente de escaneo
 
-// Animación simple para entrada de pantalla
+// Objeto de animación para transiciones de entrada
 const fadeIn = {
   animation: 'fadeIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)',
 };
 
-// Agregar keyframes globales
+// Agrega la animación global de keyframes para fadeIn si no existe
 if (typeof document !== 'undefined' && !document.getElementById('fadeInKeyframes')) {
   const style = document.createElement('style');
   style.id = 'fadeInKeyframes';
@@ -17,7 +18,7 @@ if (typeof document !== 'undefined' && !document.getElementById('fadeInKeyframes
   document.head.appendChild(style);
 }
 
-// Pantalla de Pastillas
+// Componente para la pantalla de pastillas (pantalla principal)
 const Pastillero = () => (
   <div style={{
     padding: '32px',
@@ -29,39 +30,50 @@ const Pastillero = () => (
     marginTop: 32,
     ...fadeIn
   }}>
+    {/* Título y mensaje de lista vacía */}
     <h2 style={{color: '#2563eb', fontWeight: 800, fontSize: 28, marginBottom: 8, letterSpacing: 0.5}}>💊 Mis Pastillas</h2>
     <p style={{color: '#64748b', fontSize: 18}}>Tu lista está vacía.</p>
   </div>
 );
-// Pantalla de Alarmas
+// Componente para la pantalla de alarmas
+// Permite añadir, listar, editar y eliminar alarmas
 const Alarmas = () => {
+  // Estado para la lista de alarmas
   const [alarmas, setAlarmas] = useState([
-    // Ejemplo de alarma
+    // Alarmas de ejemplo iniciales
     { id: 1, hora: '08:00', descripcion: 'Tomar pastilla A', activo: true },
     { id: 2, hora: '14:00', descripcion: 'Tomar pastilla B', activo: false }
   ]);
+  // Estado para mostrar el menú de opciones de cada alarma
   const [showMenuId, setShowMenuId] = useState(null);
+  // Estado para mostrar el formulario de añadir alarma
   const [showAdd, setShowAdd] = useState(false);
+  // Estado para los datos de la nueva alarma
   const [nuevaAlarma, setNuevaAlarma] = useState({ hora: '', descripcion: '', activo: true });
 
+  // Añade una nueva alarma a la lista
   const handleAddAlarma = () => {
     if (!nuevaAlarma.hora || !nuevaAlarma.descripcion) return;
     setAlarmas([...alarmas, { ...nuevaAlarma, id: Date.now() }]);
     setNuevaAlarma({ hora: '', descripcion: '', activo: true });
     setShowAdd(false);
   };
+  // Edita una alarma (aquí solo muestra un alert, puedes expandirlo a un modal)
   const handleEditAlarma = (id) => {
-    // Lógica de edición (puede abrir modal o similar)
     alert('Editar alarma ' + id);
   };
+  // Elimina una alarma de la lista
   const handleDeleteAlarma = (id) => {
     setAlarmas(alarmas.filter(a => a.id !== id));
     setShowMenuId(null);
   };
 
+  // Renderizado del componente
   return (
     <div className={styles.alarmasContainer} style={fadeIn}>
+      {/* Título de la sección */}
       <h2 className={styles.tituloAlarmas}>🔔 Alarmas</h2>
+      {/* Botón para mostrar el formulario de añadir alarma */}
       <div className={styles.addAlarmaRow}>
         <button
           className={styles.addAlarmaBtn}
@@ -70,6 +82,7 @@ const Alarmas = () => {
         >+</button>
         <span className={styles.addAlarmaLabel}>Añadir alarma</span>
       </div>
+      {/* Formulario para añadir una nueva alarma */}
       {showAdd && (
         <div className={styles.addAlarmaForm}>
           <div className={styles.addAlarmaInputs}>
@@ -93,6 +106,7 @@ const Alarmas = () => {
           >Guardar</button>
         </div>
       )}
+      {/* Lista de alarmas o mensaje si no hay ninguna */}
       {alarmas.length === 0 ? (
         <p className={styles.noAlarmas}>No hay alarmas configuradas.</p>
       ) : (
@@ -100,10 +114,14 @@ const Alarmas = () => {
           {alarmas.map(alarma => (
             <li key={alarma.id} className={styles.alarmaCard}>
               <div className={styles.alarmaInfo}>
+                {/* Hora de la alarma */}
                 <div className={styles.alarmaHora}>{alarma.hora}</div>
+                {/* Descripción de la alarma */}
                 <div className={styles.alarmaDesc}>{alarma.descripcion}</div>
+                {/* Estado de la alarma (activa/inactiva) */}
                 <div className={alarma.activo ? styles.alarmaEstado : `${styles.alarmaEstado} ${styles.inactiva}`}>{alarma.activo ? 'Activa' : 'Inactiva'}</div>
               </div>
+              {/* Botón de menú de opciones (editar/eliminar) */}
               <div style={{position:'relative'}}>
                 <button
                   className={styles.menuBtn}
@@ -112,6 +130,7 @@ const Alarmas = () => {
                   onMouseEnter={e => e.currentTarget.style.background = '#e0e7ef'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >⋮</button>
+                {/* Menú desplegable de opciones */}
                 {showMenuId === alarma.id && (
                   <div className={styles.menuOpciones}>
                     <button
@@ -136,7 +155,6 @@ const Alarmas = () => {
     </div>
   );
 };
-// ...existing code...
 
 function NavBar() {
   const location = useLocation();
