@@ -162,7 +162,7 @@ const Alarmas = () => {
     </div>
   );
 };
-);
+// ...existing code...
 
 function NavBar() {
   const location = useLocation();
