@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Camera as CameraIcon, Check, X, RefreshCw, Loader2, FileText, HelpCircle, Download } from 'lucide-react';
+import { Camera as CameraIcon, Check, X, RefreshCw, Loader2, MessageCircle, Send, FileText, Info } from 'lucide-react';
 import axios from 'axios';
 
 const Escaner = () => {
@@ -8,17 +8,39 @@ const Escaner = () => {
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState(null);
-  const [sugerencias, setSugerencias] = useState([]);
-  const [modoAyuda, setModoAyuda] = useState(false);
-  const [descargando, setDescargando] = useState(false);
+  const [modoPregunta, setModoPregunta] = useState(false);
+  const [pregunta, setPregunta] = useState('');
+  const [respuesta, setRespuesta] = useState('');
+  const [preguntando, setPreguntando] = useState(false);
+  const [medicamentoInfo, setMedicamentoInfo] = useState(null);
+  const [status, setStatus] = useState(null);
 
-  const API_URL = 'http://localhost:8000';
+  const API_URL = 'http://localhost:5000';
+
+  // Verificar estado al cargar
+  useEffect(() => {
+    verificarEstado();
+  }, []);
+
+  // Función para verificar el estado de la API
+  const verificarEstado = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/status`);
+      setStatus(response.data);
+      console.log('✅ API conectada:', response.data);
+    } catch (err) {
+      console.error('❌ Error conectando a la API:', err);
+    }
+  };
 
   // Función para abrir la cámara
   const tomarFoto = async () => {
     setError(null);
     setResultado(null);
-    setSugerencias([]);
+    setMedicamentoInfo(null);
+    setModoPregunta(false);
+    setRespuesta('');
+    setPregunta('');
     setCargando(true);
     
     try {
@@ -36,137 +58,113 @@ const Escaner = () => {
     }
   };
 
-  // Función para analizar
+  // Función para enviar la foto a tu API Flask
   const analizarMedicamento = async () => {
     if (!imagen) return;
     
     setCargando(true);
     setError(null);
     setResultado(null);
-    setSugerencias([]);
 
     try {
+      // Convertir la imagen URI a Blob
       const response = await fetch(imagen);
       const blob = await response.blob();
-      const formData = new FormData();
-      formData.append('file', blob, 'foto.jpg');
       
-      const apiResponse = await axios.post(`${API_URL}/api/identificar`, formData, {
+      // Crear FormData con el campo 'foto' que espera tu API
+      const formData = new FormData();
+      formData.append('foto', blob, 'medicamento.jpg');
+      
+      console.log('📤 Enviando imagen a:', `${API_URL}/upload`);
+      
+      // Enviar a tu API
+      const apiResponse = await axios.post(`${API_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000 // 60 segundos para procesos largos
+      });
+      
+      console.log('📥 Respuesta de la API:', apiResponse.data);
+      
+      if (apiResponse.data.mensaje === "Todo Fino") {
+        setResultado({
+          success: true,
+          mensaje: "✅ Medicamento procesado correctamente"
+        });
+        
+        // Guardar toda la información del medicamento
+        setMedicamentoInfo({
+          nombre: apiResponse.data.medicamento,
+          codigo: apiResponse.data.codigo,
+          pdfs: apiResponse.data.pdfs || []
+        });
+
+        // Actualizar estado
+        verificarEstado();
+      } else {
+        setError("Error al procesar el medicamento");
+      }
+    } catch (err) {
+      console.error('❌ Error completo:', err);
+      if (err.code === 'ECONNABORTED') {
+        setError("La operación tomó demasiado tiempo. Intenta de nuevo.");
+      } else if (err.response) {
+        // Error con respuesta del servidor
+        setError(err.response.data.error || "Error del servidor");
+      } else if (err.request) {
+        setError("No se pudo conectar con el servidor. ¿Está corriendo la API?");
+      } else {
+        setError("Error al procesar la imagen");
+      }
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Función para hacer preguntas sobre el medicamento
+  const hacerPregunta = async () => {
+    if (!pregunta.trim()) return;
+    
+    setPreguntando(true);
+    setRespuesta('');
+    
+    try {
+      console.log('❓ Preguntando:', pregunta);
+      
+      const response = await axios.get(`${API_URL}/pregunta`, {
+        params: { pregunta: pregunta },
         timeout: 30000
       });
       
-      console.log('Respuesta:', apiResponse.data);
+      console.log('💬 Respuesta:', response.data);
       
-      if (apiResponse.data.success) {
-        setResultado(apiResponse.data);
+      if (response.data.respuesta) {
+        setRespuesta(response.data.respuesta);
       } else {
-        if (apiResponse.data.sugerencias?.length > 0) {
-          setSugerencias(apiResponse.data.sugerencias);
-        }
-        setError(apiResponse.data.mensaje || "No se pudo identificar el medicamento");
+        setRespuesta("No se pudo obtener una respuesta");
       }
     } catch (err) {
-      setError("Error de conexión. ¿El servidor está encendido?");
+      console.error('Error en pregunta:', err);
+      setError("Error al hacer la pregunta. Intenta de nuevo.");
     } finally {
-      setCargando(false);
-    }
-  };
-
-  // Probar con una sugerencia
-  const probarSugerencia = async (codigo, nombre) => {
-    setCargando(true);
-    try {
-      const response = await axios.get(`${API_URL}/api/medicamento/${codigo}`);
-      setResultado({
-        success: true,
-        nombre: nombre || response.data.nombre,
-        codigo_nacional: codigo,
-        presentacion: response.data.presentacion || "Información de referencia",
-        laboratorio: response.data.laboratorio,
-        prospecto: response.data.prospecto || null
-      });
-      setSugerencias([]);
-      setError(null);
-    } catch (error) {
-      setError("Error al cargar la sugerencia");
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  // NUEVA FUNCIÓN: Descargar prospecto
-  const descargarProspecto = async () => {
-    if (!resultado || !resultado.codigo_nacional) {
-      setError("No hay código de medicamento para descargar");
-      return;
-    }
-    
-    setDescargando(true);
-    try {
-      console.log("Descargando prospecto para código:", resultado.codigo_nacional);
-      
-      // Obtener información del prospecto
-      const response = await axios.get(`${API_URL}/api/prospecto/${resultado.codigo_nacional}`);
-      console.log("Respuesta prospecto:", response.data);
-      
-      if (response.data && response.data.nombre) {
-        // Descargar el PDF
-        const pdfResponse = await axios.get(`${API_URL}/api/prospecto/archivo/${response.data.nombre}`, {
-          responseType: 'blob'
-        });
-        
-        // Crear link de descarga
-        const url = window.URL.createObjectURL(new Blob([pdfResponse.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', response.data.nombre);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-        
-        alert('✅ Prospecto descargado correctamente');
-      } else {
-        setError("No se encontró prospecto para este medicamento");
-      }
-    } catch (error) {
-      console.error('Error descargando prospecto:', error);
-      setError("No se pudo descargar el prospecto. Intenta más tarde.");
-    } finally {
-      setDescargando(false);
-    }
-  };
-
-  // Ver PDF (si existe URL)
-  const verPDF = () => {
-    if (resultado?.prospecto?.url_original) {
-      window.open(resultado.prospecto.url_original, '_blank');
-    } else if (resultado?.prospecto_url) {
-      window.open(resultado.prospecto_url, '_blank');
-    } else {
-      setError("No hay URL del prospecto disponible");
+      setPreguntando(false);
     }
   };
 
   const reiniciar = () => {
     setImagen(null);
     setResultado(null);
+    setMedicamentoInfo(null);
     setError(null);
-    setSugerencias([]);
-    setModoAyuda(false);
-    setDescargando(false);
+    setModoPregunta(false);
+    setPregunta('');
+    setRespuesta('');
   };
 
-  // Texto de ayuda
-  const ayudaTexto = `
-    📸 CONSEJOS PARA LA FOTO:
-    
-    1️⃣ Enfoca bien el código de barras o el nombre del medicamento
-    2️⃣ Asegúrate de tener buena iluminación
-    3️⃣ Sujeta el móvil firme
-    4️⃣ Si no funciona, prueba con otra parte del envase
-  `;
+  // Formatear nombre de archivo para mostrar
+  const getNombreArchivo = (ruta) => {
+    if (!ruta) return '';
+    return ruta.split('\\').pop().split('/').pop();
+  };
 
   return (
     <div style={{ 
@@ -175,95 +173,102 @@ const Escaner = () => {
       flexDirection: 'column', 
       alignItems: 'center', 
       padding: 20,
-      backgroundColor: '#f0f9ff',
+      background: 'linear-gradient(135deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)',
+      color: 'white',
       fontFamily: 'Arial, sans-serif'
     }}>
       
       <h1 style={{ 
-        fontSize: 32, 
-        color: '#0369a1',
-        marginBottom: 20,
-        textAlign: 'center'
+        fontSize: 36, 
+        marginBottom: 20, 
+        textAlign: 'center',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
       }}>
-        💊 MedScan IA
+        💊 Identificador de Medicamentos
       </h1>
 
-      {/* Botón de ayuda */}
-      {!imagen && !cargando && !resultado && (
-        <button
-          onClick={() => setModoAyuda(!modoAyuda)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#0284c7',
-            fontSize: 16,
-            marginBottom: 20,
-            textDecoration: 'underline',
-            cursor: 'pointer'
-          }}
-        >
-          {modoAyuda ? 'Ocultar ayuda' : '¿Cómo hacer la foto?'}
-        </button>
-      )}
-
-      {/* Panel de ayuda */}
-      {modoAyuda && (
+      {/* Indicador de estado de la API */}
+      {status && (
         <div style={{
-          backgroundColor: 'white',
-          padding: 20,
-          borderRadius: 16,
-          marginBottom: 20,
-          border: '2px solid #0284c7',
-          whiteSpace: 'pre-line',
-          fontSize: 16,
-          lineHeight: 1.6
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          background: status.sesion_activa ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.2)',
+          padding: '8px 15px',
+          borderRadius: 20,
+          fontSize: 12,
+          backdropFilter: 'blur(5px)',
+          border: '1px solid rgba(255,255,255,0.3)'
         }}>
-          {ayudaTexto}
+          {status.sesion_activa ? '✅ Sesión activa' : '⏳ Esperando medicamento'}
         </div>
       )}
 
       {/* Estado 1: Sin foto */}
       {!imagen && !resultado && !cargando && (
-        <button 
-          onClick={tomarFoto}
-          style={{
-            width: 280,
-            height: 280,
-            borderRadius: 140,
-            backgroundColor: '#0284c7',
-            border: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 10px 25px rgba(2, 132, 199, 0.4)',
-            marginBottom: 30
-          }}
-        >
-          <CameraIcon size={100} color="white" />
-          <span style={{ fontSize: 24, fontWeight: 'bold', color: 'white', marginTop: 10 }}>
-            TOCAR PARA
-          </span>
-          <span style={{ fontSize: 28, fontWeight: 'bold', color: 'white' }}>
-            ESCANEAR
-          </span>
-        </button>
+        <>
+          <button 
+            onClick={tomarFoto}
+            style={{
+              width: 260,
+              height: 260,
+              borderRadius: 130,
+              background: 'rgba(255,255,255,0.2)',
+              border: '4px solid white',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease',
+              backdropFilter: 'blur(5px)',
+              marginBottom: 30
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+            }}
+          >
+            <CameraIcon size={100} color="white" />
+            <span style={{ fontSize: 24, fontWeight: 'bold', marginTop: 10 }}>
+              TOMAR FOTO
+            </span>
+          </button>
+          
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            padding: 15,
+            borderRadius: 12,
+            maxWidth: 300,
+            textAlign: 'center',
+            fontSize: 14,
+            lineHeight: 1.6,
+            backdropFilter: 'blur(5px)'
+          }}>
+            <Info size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+            Toma una foto del código de barras o del nombre del medicamento
+          </div>
+        </>
       )}
 
       {/* Estado 2: Foto tomada */}
-      {imagen && !resultado && !cargando && sugerencias.length === 0 && (
+      {imagen && !resultado && !cargando && (
         <div style={{ width: '100%', maxWidth: 400 }}>
           <img 
             src={imagen} 
             alt="Foto" 
             style={{ 
               width: '100%', 
-              maxHeight: 400, 
+              maxHeight: 350, 
               objectFit: 'contain',
               borderRadius: 16,
-              border: '3px solid #0284c7',
-              marginBottom: 20
+              border: '3px solid white',
+              marginBottom: 20,
+              background: 'white'
             }} 
           />
           
@@ -273,17 +278,22 @@ const Escaner = () => {
               style={{
                 flex: 1,
                 padding: 15,
-                backgroundColor: '#ef4444',
+                background: '#ef4444',
                 border: 'none',
                 borderRadius: 12,
                 color: 'white',
                 fontSize: 18,
                 fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8
+                gap: 8,
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
               }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <X size={24} /> CANCELAR
             </button>
@@ -293,17 +303,22 @@ const Escaner = () => {
               style={{
                 flex: 2,
                 padding: 15,
-                backgroundColor: '#22c55e',
+                background: '#22c55e',
                 border: 'none',
                 borderRadius: 12,
                 color: 'white',
                 fontSize: 20,
                 fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8
+                gap: 8,
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
               }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <Check size={24} /> ANALIZAR
             </button>
@@ -314,101 +329,75 @@ const Escaner = () => {
       {/* Estado 3: Cargando */}
       {cargando && (
         <div style={{ textAlign: 'center' }}>
-          <Loader2 size={64} className="animate-spin" color="#0284c7" />
+          <Loader2 size={64} className="animate-spin" />
           <p style={{ fontSize: 20, marginTop: 20 }}>
             {resultado ? 'Consultando información...' : 'Analizando imagen...'}
           </p>
+          <p style={{ fontSize: 14, opacity: 0.8, marginTop: 10 }}>
+            Esto puede tomar unos segundos
+          </p>
         </div>
       )}
 
-      {/* Estado 4: Sugerencias */}
-      {sugerencias.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 400 }}>
-          <h3 style={{ color: '#b45309', marginBottom: 15 }}>
-            ¿Quizás es alguno de estos?
-          </h3>
-          
-          {sugerencias.map((sug, index) => (
-            <button
-              key={index}
-              onClick={() => probarSugerencia(sug.codigo, sug.nombre)}
-              style={{
-                width: '100%',
-                padding: 15,
-                marginBottom: 10,
-                backgroundColor: 'white',
-                border: '2px solid #0284c7',
-                borderRadius: 12,
-                fontSize: 16,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <strong>{sug.nombre}</strong>
-              <br />
-              <small>Código: {sug.codigo}</small>
-            </button>
-          ))}
-          
-          <button
-            onClick={reiniciar}
-            style={{
-              width: '100%',
-              padding: 15,
-              marginTop: 10,
-              backgroundColor: '#6b7280',
-              border: 'none',
-              borderRadius: 12,
-              color: 'white',
-              fontSize: 16
-            }}
-          >
-            VOLVER A INTENTAR
-          </button>
-        </div>
-      )}
-
-      {/* Estado 5: Resultado */}
-      {resultado && (
+      {/* Estado 4: Resultado con información del medicamento */}
+      {resultado && !modoPregunta && medicamentoInfo && (
         <div style={{
-          width: '100%',
-          maxWidth: 400,
-          backgroundColor: 'white',
+          background: 'rgba(255,255,255,0.95)',
+          color: '#333',
           borderRadius: 24,
           padding: 25,
-          border: '3px solid #22c55e',
-          boxShadow: '0 10px 25px rgba(34, 197, 94, 0.2)'
+          width: '100%',
+          maxWidth: 400,
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)'
         }}>
-          <h2 style={{ fontSize: 24, color: '#166534', marginBottom: 15 }}>
+          <h2 style={{ fontSize: 24, color: '#22c55e', marginBottom: 20, textAlign: 'center' }}>
             ✅ ¡Medicamento identificado!
           </h2>
           
-          <p style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>
-            {resultado.nombre}
-          </p>
-          
-          <p style={{ fontSize: 16, color: '#4b5563', marginBottom: 5 }}>
-            {resultado.presentacion}
-          </p>
-          
-          {resultado.laboratorio && (
-            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 15 }}>
-              Laboratorio: {resultado.laboratorio}
+          <div style={{ 
+            background: '#f3f4f6', 
+            padding: 20, 
+            borderRadius: 16, 
+            marginBottom: 20 
+          }}>
+            <p style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>
+              {medicamentoInfo.nombre}
             </p>
-          )}
+            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 15 }}>
+              Código: {medicamentoInfo.codigo}
+            </p>
+            
+            {medicamentoInfo.pdfs && medicamentoInfo.pdfs.length > 0 && (
+              <div style={{ marginTop: 15 }}>
+                <p style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
+                  📄 PDFs descargados:
+                </p>
+                {medicamentoInfo.pdfs.map((pdf, index) => (
+                  <div key={index} style={{
+                    fontSize: 12,
+                    color: '#4b5563',
+                    background: 'white',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    marginBottom: 5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}>
+                    <FileText size={14} color="#3b82f6" />
+                    {getNombreArchivo(pdf)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           
-          <p style={{ fontSize: 14, color: '#9ca3af', marginBottom: 20 }}>
-            Código: {resultado.codigo_nacional}
-          </p>
-          
-          {/* BOTÓN DE DESCARGA DE PROSPECTO */}
           <button
-            onClick={descargarProspecto}
-            disabled={descargando}
+            onClick={() => setModoPregunta(true)}
             style={{
               width: '100%',
               padding: 15,
-              backgroundColor: '#3b82f6',
+              background: '#8b5cf6',
               border: 'none',
               borderRadius: 12,
               color: 'white',
@@ -418,93 +407,181 @@ const Escaner = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              marginBottom: 15,
-              opacity: descargando ? 0.7 : 1,
-              cursor: descargando ? 'not-allowed' : 'pointer'
+              marginBottom: 10,
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
             }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
           >
-            {descargando ? (
-              <>
-                <Loader2 size={20} className="animate-spin" /> DESCARGANDO...
-              </>
-            ) : (
-              <>
-                <Download size={20} /> DESCARGAR PROSPECTO
-              </>
-            )}
+            <MessageCircle size={20} /> HACER PREGUNTAS
           </button>
-          
-          {/* Botón de ver prospecto online (si hay URL) */}
-          {(resultado.prospecto?.url_original || resultado.prospecto_url) && (
-            <button
-              onClick={verPDF}
-              style={{
-                width: '100%',
-                padding: 12,
-                backgroundColor: '#8b5cf6',
-                border: 'none',
-                borderRadius: 12,
-                color: 'white',
-                fontSize: 16,
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                marginBottom: 15
-              }}
-            >
-              <FileText size={18} /> VER PROSPECTO ONLINE
-            </button>
-          )}
           
           <button
             onClick={reiniciar}
             style={{
               width: '100%',
               padding: 15,
-              backgroundColor: 'white',
+              background: 'white',
               border: '2px solid #22c55e',
               borderRadius: 12,
               color: '#22c55e',
               fontSize: 18,
               fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8
             }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
           >
             <RefreshCw size={20} /> ESCANEAR OTRO
           </button>
         </div>
       )}
 
-      {/* Estado 6: Error */}
-      {error && !sugerencias.length && (
+      {/* Estado 5: Modo preguntas */}
+      {modoPregunta && (
         <div style={{
+          background: 'rgba(255,255,255,0.95)',
+          color: '#333',
+          borderRadius: 24,
+          padding: 25,
           width: '100%',
           maxWidth: 400,
-          backgroundColor: '#fee2e2',
-          borderRadius: 16,
-          padding: 20,
-          border: '2px solid #ef4444'
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
         }}>
-          <p style={{ fontSize: 18, color: '#b91c1c', marginBottom: 15 }}>
-            ⚠️ {error}
-          </p>
+          <h2 style={{ fontSize: 24, color: '#8b5cf6', marginBottom: 15, textAlign: 'center' }}>
+            ❓ Pregunta sobre el medicamento
+          </h2>
+          
+          {medicamentoInfo && (
+            <div style={{
+              background: '#f3f4f6',
+              padding: '12px 15px',
+              borderRadius: 12,
+              marginBottom: 20,
+              fontSize: 14,
+              textAlign: 'center'
+            }}>
+              <strong>{medicamentoInfo.nombre}</strong>
+            </div>
+          )}
+          
+          <textarea
+            value={pregunta}
+            onChange={(e) => setPregunta(e.target.value)}
+            placeholder="Ej: ¿Para qué sirve? ¿Cada cuánto tomarlo? ¿Contraindicaciones?"
+            style={{
+              width: '100%',
+              padding: 12,
+              borderRadius: 12,
+              border: '2px solid #8b5cf6',
+              fontSize: 16,
+              minHeight: 100,
+              marginBottom: 15,
+              fontFamily: 'inherit',
+              resize: 'vertical'
+            }}
+          />
           
           <button
-            onClick={reiniciar}
+            onClick={hacerPregunta}
+            disabled={preguntando || !pregunta.trim()}
             style={{
               width: '100%',
               padding: 15,
-              backgroundColor: '#ef4444',
+              background: '#8b5cf6',
+              border: 'none',
+              borderRadius: 12,
+              color: 'white',
+              fontSize: 18,
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 20,
+              opacity: (!pregunta.trim() || preguntando) ? 0.5 : 1,
+              cursor: (!pregunta.trim() || preguntando) ? 'not-allowed' : 'pointer',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={e => !preguntando && pregunta.trim() && (e.currentTarget.style.transform = 'scale(1.02)')}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            {preguntando ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <Send size={20} />
+            )}
+            {preguntando ? 'PENSANDO...' : 'PREGUNTAR'}
+          </button>
+          
+          {respuesta && (
+            <div style={{
+              background: '#f3f4f6',
+              padding: 20,
+              borderRadius: 16,
+              marginBottom: 20,
+              border: '2px solid #8b5cf6'
+            }}>
+              <p style={{ fontSize: 16, lineHeight: 1.6, marginBottom: 10 }}>
+                <strong>Respuesta:</strong>
+              </p>
+              <p style={{ fontSize: 15, lineHeight: 1.6 }}>{respuesta}</p>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setModoPregunta(false)}
+            style={{
+              width: '100%',
+              padding: 12,
+              background: '#6b7280',
               border: 'none',
               borderRadius: 12,
               color: 'white',
               fontSize: 16,
-              fontWeight: 'bold'
+              cursor: 'pointer',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            VOLVER AL MEDICAMENTO
+          </button>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          background: '#fee2e2',
+          color: '#b91c1c',
+          borderRadius: 16,
+          padding: 20,
+          width: '100%',
+          maxWidth: 400
+        }}>
+          <p style={{ fontSize: 16, marginBottom: 15, textAlign: 'center' }}>
+            ⚠️ {error}
+          </p>
+          <button
+            onClick={reiniciar}
+            style={{
+              width: '100%',
+              padding: 12,
+              background: '#b91c1c',
+              border: 'none',
+              borderRadius: 12,
+              color: 'white',
+              fontSize: 16,
+              fontWeight: 'bold',
+              cursor: 'pointer'
             }}
           >
             INTENTAR DE NUEVO

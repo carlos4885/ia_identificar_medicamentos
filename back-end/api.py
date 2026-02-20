@@ -1,6 +1,7 @@
 import re
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, session
+from flask_cors import CORS  # <-necesario para usar con react
 import requests
 import os
 
@@ -9,6 +10,7 @@ CHATPDF_API_KEY = os.getenv('CHATPDF_API_KEY')
 
 
 app = Flask(__name__)
+CORS(app)  # <--- necesario para react
 app.secret_key = 'tu_clave_secreta_aqui'  # Necesario para usar sesiones
 
 UPLOAD_FOLDER = 'uploads'
@@ -144,11 +146,22 @@ def upload_image():
 
 @app.route('/pregunta', methods=['GET'])
 def hacer_pregunta():
+    # 1. PRIMERO validar source_id
     source_id = session.get('source_id')
+    if not source_id:
+        return jsonify({
+            "error": "No hay ningún PDF cargado. Primero usa /upload con una imagen"
+        }), 400
+    
+    # 2. SEGUNDO validar pregunta
     pregunta = request.args.get('pregunta')
-    respuesta = preguntar_a_pdf(source_id, pregunta)
     if not pregunta:
-        return jsonify({"error": "No se proporcionó una pregunta"}), 400
+        return jsonify({
+            "error": "No se proporcionó una pregunta. Usa ?pregunta=tu_pregunta"
+        }), 400
+    
+    # 3. AHORA SÍ hacer la pregunta
+    respuesta = preguntar_a_pdf(source_id, pregunta)
     
     return jsonify({
         "pregunta": pregunta,
