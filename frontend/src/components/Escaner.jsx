@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Camera as CameraIcon, Check, X, RefreshCw, Loader2, FileText, HelpCircle } from 'lucide-react';
+import { Camera as CameraIcon, Check, X, RefreshCw, Loader2, FileText, HelpCircle, Download } from 'lucide-react';
 import axios from 'axios';
 
 const Escaner = () => {
@@ -10,6 +10,7 @@ const Escaner = () => {
   const [error, setError] = useState(null);
   const [sugerencias, setSugerencias] = useState([]);
   const [modoAyuda, setModoAyuda] = useState(false);
+  const [descargando, setDescargando] = useState(false);
 
   const API_URL = 'http://localhost:8000';
 
@@ -81,22 +82,70 @@ const Escaner = () => {
         success: true,
         nombre: nombre || response.data.nombre,
         codigo_nacional: codigo,
-        presentacion: "Información de referencia",
-        fuente: "Base de datos local"
+        presentacion: response.data.presentacion || "Información de referencia",
+        laboratorio: response.data.laboratorio,
+        prospecto: response.data.prospecto || null
       });
       setSugerencias([]);
       setError(null);
     } catch (error) {
-      setError("Error al carrar la sugerencia");
+      setError("Error al cargar la sugerencia");
     } finally {
       setCargando(false);
     }
   };
 
+  // NUEVA FUNCIÓN: Descargar prospecto
+  const descargarProspecto = async () => {
+    if (!resultado || !resultado.codigo_nacional) {
+      setError("No hay código de medicamento para descargar");
+      return;
+    }
+    
+    setDescargando(true);
+    try {
+      console.log("Descargando prospecto para código:", resultado.codigo_nacional);
+      
+      // Obtener información del prospecto
+      const response = await axios.get(`${API_URL}/api/prospecto/${resultado.codigo_nacional}`);
+      console.log("Respuesta prospecto:", response.data);
+      
+      if (response.data && response.data.nombre) {
+        // Descargar el PDF
+        const pdfResponse = await axios.get(`${API_URL}/api/prospecto/archivo/${response.data.nombre}`, {
+          responseType: 'blob'
+        });
+        
+        // Crear link de descarga
+        const url = window.URL.createObjectURL(new Blob([pdfResponse.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', response.data.nombre);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+        alert('✅ Prospecto descargado correctamente');
+      } else {
+        setError("No se encontró prospecto para este medicamento");
+      }
+    } catch (error) {
+      console.error('Error descargando prospecto:', error);
+      setError("No se pudo descargar el prospecto. Intenta más tarde.");
+    } finally {
+      setDescargando(false);
+    }
+  };
+
+  // Ver PDF (si existe URL)
   const verPDF = () => {
-    if (resultado?.prospecto_pdf) {
-      const nombrePDF = resultado.prospecto_pdf.split('\\').pop().split('/').pop();
-      window.open(`${API_URL}/api/pdf/${nombrePDF}`, '_blank');
+    if (resultado?.prospecto?.url_original) {
+      window.open(resultado.prospecto.url_original, '_blank');
+    } else if (resultado?.prospecto_url) {
+      window.open(resultado.prospecto_url, '_blank');
+    } else {
+      setError("No hay URL del prospecto disponible");
     }
   };
 
@@ -106,14 +155,15 @@ const Escaner = () => {
     setError(null);
     setSugerencias([]);
     setModoAyuda(false);
+    setDescargando(false);
   };
 
   // Texto de ayuda
   const ayudaTexto = `
     📸 CONSEJOS PARA LA FOTO:
     
-    1️⃣ Enfoca bien el código de barras o el nombre
-    2️⃣ Buena iluminación
+    1️⃣ Enfoca bien el código de barras o el nombre del medicamento
+    2️⃣ Asegúrate de tener buena iluminación
     3️⃣ Sujeta el móvil firme
     4️⃣ Si no funciona, prueba con otra parte del envase
   `;
@@ -351,17 +401,51 @@ const Escaner = () => {
             Código: {resultado.codigo_nacional}
           </p>
           
-          {resultado.prospecto_pdf && (
+          {/* BOTÓN DE DESCARGA DE PROSPECTO */}
+          <button
+            onClick={descargarProspecto}
+            disabled={descargando}
+            style={{
+              width: '100%',
+              padding: 15,
+              backgroundColor: '#3b82f6',
+              border: 'none',
+              borderRadius: 12,
+              color: 'white',
+              fontSize: 18,
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 15,
+              opacity: descargando ? 0.7 : 1,
+              cursor: descargando ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {descargando ? (
+              <>
+                <Loader2 size={20} className="animate-spin" /> DESCARGANDO...
+              </>
+            ) : (
+              <>
+                <Download size={20} /> DESCARGAR PROSPECTO
+              </>
+            )}
+          </button>
+          
+          {/* Botón de ver prospecto online (si hay URL) */}
+          {(resultado.prospecto?.url_original || resultado.prospecto_url) && (
             <button
               onClick={verPDF}
               style={{
                 width: '100%',
-                padding: 15,
-                backgroundColor: '#3b82f6',
+                padding: 12,
+                backgroundColor: '#8b5cf6',
                 border: 'none',
                 borderRadius: 12,
                 color: 'white',
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
@@ -370,7 +454,7 @@ const Escaner = () => {
                 marginBottom: 15
               }}
             >
-              <FileText size={20} /> VER PROSPECTO
+              <FileText size={18} /> VER PROSPECTO ONLINE
             </button>
           )}
           
