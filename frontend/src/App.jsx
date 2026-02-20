@@ -272,7 +272,7 @@ function App() {
             textShadow: '0 2px 12px #2563eb22',
             flex: 1,
           }}>
-            MedSacn <span style={{color:'#22d3ee'}}>IA</span>
+            MedScan <span style={{color:'#22d3ee'}}>IA</span>
           </h1>
           <button
             aria-label="Ajustes"
