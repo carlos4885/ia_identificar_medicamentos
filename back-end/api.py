@@ -144,11 +144,22 @@ def upload_image():
 
 @app.route('/pregunta', methods=['GET'])
 def hacer_pregunta():
+    # 1. PRIMERO validar source_id
     source_id = session.get('source_id')
+    if not source_id:
+        return jsonify({
+            "error": "No hay ningún PDF cargado. Primero usa /upload con una imagen"
+        }), 400
+    
+    # 2. SEGUNDO validar pregunta
     pregunta = request.args.get('pregunta')
-    respuesta = preguntar_a_pdf(source_id, pregunta)
     if not pregunta:
-        return jsonify({"error": "No se proporcionó una pregunta"}), 400
+        return jsonify({
+            "error": "No se proporcionó una pregunta. Usa ?pregunta=tu_pregunta"
+        }), 400
+    
+    # 3. AHORA SÍ hacer la pregunta
+    respuesta = preguntar_a_pdf(source_id, pregunta)
     
     return jsonify({
         "pregunta": pregunta,
